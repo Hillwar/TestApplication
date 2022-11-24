@@ -2,6 +2,7 @@ package com.hillwar.testapplication
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var localUrl: String = ""
     private lateinit var firebaseRemoteConfig: FirebaseRemoteConfig
+    private lateinit var mySettings: SharedPreferences
     private val DEFAULTS: HashMap<String, Any> =
         hashMapOf(APP_URL to "")
     private val TAG = "RemoteConfig"
@@ -38,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val mySettings = getSharedPreferences(APP_SETTINGS, Context.MODE_PRIVATE)
+        mySettings = getSharedPreferences(APP_SETTINGS, Context.MODE_PRIVATE)
         if (mySettings.contains(APP_URL)) {
             localUrl = mySettings.getString(APP_URL, "")!!
         }
@@ -75,7 +77,6 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, ("${e.message}"), Toast.LENGTH_SHORT).show()
             }
-
             if (url == "" || checkIsEmu() || !isSIMInserted(applicationContext)) {
                 val intent = Intent(this, PlugActivity::class.java)
                 startActivity(intent)
@@ -83,12 +84,16 @@ class MainActivity : AppCompatActivity() {
             }
             if (url != null) {
                 localUrl = url
-                val editor = mySettings.edit()
-                editor.putString(APP_URL, localUrl)
-                editor.apply()
-                runWebView(url)
+                editUrl(url)
             }
         }
+    }
+
+    private fun editUrl(url: String) {
+        val editor = mySettings.edit()
+        editor.putString(APP_URL, url)
+        editor.apply()
+        runWebView(url)
     }
 
     private fun runWebView(copyOfUrl: String) {
@@ -128,7 +133,13 @@ class MainActivity : AppCompatActivity() {
             description: String,
             failingUrl: String?
         ) {
+            Log.d(TAG, failingUrl.toString())
             Toast.makeText(this@MainActivity, ("Oh no! $description"), Toast.LENGTH_SHORT).show()
+            editUrl("")
+            localUrl = ""
+            val intent = Intent(this@MainActivity, PlugActivity::class.java)
+            startActivity(intent)
+            finish()
         }
 
         override fun onPageFinished(webView: WebView?, url: String?) {

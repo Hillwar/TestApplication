@@ -34,7 +34,8 @@
                 android:value="" />
         </activity>
         <activity android:name=".PlugActivity"
-            android:theme="@style/PlugTheme"/>
+            android:theme="@style/PlugTheme"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>
