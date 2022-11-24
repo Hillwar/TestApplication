@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "401027985214",
+    "project_id": "test-application-d205e",
+    "storage_bucket": "test-application-d205e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401027985214:android:9ea17752b61235ed03866f",
+        "android_client_info": {
+          "package_name": "com.hillwar.testapplication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "401027985214-4ggp18mkmfv82oprpeg7h0k2baerk0g4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDznPwJIKJRAU-__S0x9J-dW6L_iddxfg4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "401027985214-4ggp18mkmfv82oprpeg7h0k2baerk0g4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
