@@ -1,4 +1,4 @@
-package com.hillwar.testapplication
+package olimp.stays.game
 
 import android.content.Context
 import android.content.Intent
@@ -15,12 +15,12 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import olimp.stays.game.databinding.ActivityMainBinding
 import com.google.firebase.ktx.BuildConfig
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
-import com.hillwar.testapplication.databinding.ActivityMainBinding
 import java.util.*
 
 
@@ -40,6 +40,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        if (isEmulator() || !isSIMInserted(applicationContext)) {
+            val intent = Intent(this@MainActivity, PlugActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+
         mySettings = getSharedPreferences(APP_SETTINGS, Context.MODE_PRIVATE)
         if (mySettings.contains(APP_URL)) {
             localUrl = mySettings.getString(APP_URL, "")!!
@@ -47,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
         val copyOfUrl = localUrl
         if (!isNetworkConnected()) {
-            val text = "Для работы приложения необходим доступ в интернет"
+            val text = "An internet connection is required"
             val duration = Toast.LENGTH_SHORT
             val toast = Toast.makeText(this, text, duration)
             toast.show()
@@ -56,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         if (copyOfUrl != "") {
             runWebView(copyOfUrl)
         } else {
-            var url: String? = null
             try {
                 firebaseRemoteConfig = Firebase.remoteConfig
                 val configSettings = remoteConfigSettings {
@@ -71,20 +76,20 @@ class MainActivity : AppCompatActivity() {
                     setDefaultsAsync(DEFAULTS)
                     fetchAndActivate().addOnCompleteListener {
                         Log.d(TAG, "Remote Config Fetch Complete")
+                        val url: String = getUrl()
+                        if (url == "") {
+                            val intent = Intent(this@MainActivity, PlugActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                        localUrl = url
+                        editUrl(url)
+                        runWebView(url)
                     }
                 }
-                url = getUrl()
+
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, ("${e.message}"), Toast.LENGTH_SHORT).show()
-            }
-            if (url == "" || checkIsEmu() || !isSIMInserted(applicationContext)) {
-                val intent = Intent(this, PlugActivity::class.java)
-                startActivity(intent)
-                finish()
-            }
-            if (url != null) {
-                localUrl = url
-                editUrl(url)
             }
         }
     }
@@ -93,15 +98,24 @@ class MainActivity : AppCompatActivity() {
         val editor = mySettings.edit()
         editor.putString(APP_URL, url)
         editor.apply()
-        runWebView(url)
     }
 
     private fun runWebView(copyOfUrl: String) {
         binding.webView.loadUrl(copyOfUrl)
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
         val webSettings = binding.webView.settings
         webSettings.javaScriptEnabled = true
+        webSettings.javaScriptCanOpenWindowsAutomatically = true
         webSettings.domStorageEnabled = true
         webSettings.loadWithOverviewMode = true
+        webSettings.useWideViewPort = true
+        webSettings.databaseEnabled = true
+        webSettings.setSupportZoom(false)
+        webSettings.allowFileAccess = true
+        webSettings.allowContentAccess = true
+        webSettings.useWideViewPort = true
+
         binding.webView.webViewClient = MyWebViewClient()
     }
 
@@ -110,6 +124,9 @@ class MainActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && binding.webView.canGoBack()) {
             binding.webView.goBack()
+            return true
+        }
+        if (keyCode == KeyEvent.KEYCODE_BACK && !binding.webView.canGoBack()) {
             return true
         }
         return super.onKeyDown(keyCode, event)
@@ -152,11 +169,15 @@ class MainActivity : AppCompatActivity() {
         return cm.activeNetworkInfo != null && cm.activeNetworkInfo!!.isConnected
     }
 
-    private fun checkIsEmu(): Boolean {
-        if (BuildConfig.DEBUG) return false
+    private fun isEmulator(): Boolean {
+        if (BuildConfig.DEBUG) return false // when developer use this build on emulator
+
         val phoneModel = Build.MODEL
         val buildProduct = Build.PRODUCT
         val buildHardware = Build.HARDWARE
+        val brand = Build.BRAND
+
+
         var result = (Build.FINGERPRINT.startsWith("generic")
                 || phoneModel.contains("google_sdk")
                 || phoneModel.lowercase(Locale.getDefault()).contains("droid4x")
@@ -164,6 +185,7 @@ class MainActivity : AppCompatActivity() {
                 || phoneModel.contains("Android SDK built for x86")
                 || Build.MANUFACTURER.contains("Genymotion")
                 || buildHardware == "goldfish"
+                || Build.BRAND.contains("google")
                 || buildHardware == "vbox86"
                 || buildProduct == "sdk"
                 || buildProduct == "google_sdk"
@@ -173,9 +195,9 @@ class MainActivity : AppCompatActivity() {
                 || Build.BOOTLOADER.lowercase(Locale.getDefault()).contains("nox")
                 || buildHardware.lowercase(Locale.getDefault()).contains("nox")
                 || buildProduct.lowercase(Locale.getDefault()).contains("nox"))
+
         if (result) return true
-        result = result or (Build.BRAND.startsWith("generic") &&
-                Build.DEVICE.startsWith("generic"))
+        result = result or (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
         if (result) return true
         result = result or ("google_sdk" == buildProduct)
         return result
